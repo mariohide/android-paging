@@ -17,6 +17,7 @@
 package com.example.android.codelabs.paging.ui
 
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
@@ -33,6 +34,8 @@ import com.example.android.codelabs.paging.databinding.ActivitySearchRepositorie
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+private const val TAG = "SearchRepositoriesAct"
+
 class SearchRepositoriesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +45,10 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         setContentView(view)
 
         // get the view model
-        val viewModel = ViewModelProvider(this, Injection.provideViewModelFactory(owner = this))[SearchRepositoriesViewModel::class.java]
+        val viewModel = ViewModelProvider(
+            this,
+            Injection.provideViewModelFactory(owner = this, context = this.applicationContext)
+        )[SearchRepositoriesViewModel::class.java]
 
         // add dividers between RecyclerView's row items
         val decoration = DividerItemDecoration(this, DividerItemDecoration.VERTICAL)
@@ -115,6 +121,8 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     private fun ActivitySearchRepositoriesBinding.updateRepoListFromInput(onQueryChanged: (UiAction.Search) -> Unit) {
         searchRepo.text.trim().let {
             if (it.isNotEmpty()) {
+                // onQueryChanged 是一个函数类型的对象。对象后加括号和参数，是 kotlin 的语法糖。
+                // 它等价于 onQueryChanged.invoke(UiAction.Search(it.toString()))
                 onQueryChanged(UiAction.Search(query = it.toString()))
             }
         }
@@ -155,6 +163,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             shouldScrollToTop.collect { shouldScroll ->
+                Log.d(TAG, "bindList: shouldScroll=$shouldScroll")
                 if (shouldScroll) list.scrollToPosition(0)
             }
         }

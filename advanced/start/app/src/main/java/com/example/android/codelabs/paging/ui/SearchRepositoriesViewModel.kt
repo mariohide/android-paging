@@ -55,7 +55,8 @@ class SearchRepositoriesViewModel(
     val pagingDataFlow: Flow<PagingData<UiModel>>
 
     /**
-     * Processor of side effects from the UI which in turn feedback into [state]
+     * 定义了一个函数，接收 UiAction 作为参数，无返回值
+     * 在 init 在代码块中初始化，每收到一个 UiAction，就发射给 ActionStateFlow。
      */
     val accept: (UiAction) -> Unit
 
@@ -63,10 +64,14 @@ class SearchRepositoriesViewModel(
         val initialQuery: String = savedStateHandle.get(LAST_SEARCH_QUERY) ?: DEFAULT_QUERY
         val lastQueryScrolled: String = savedStateHandle.get(LAST_QUERY_SCROLLED) ?: DEFAULT_QUERY
         val actionStateFlow = MutableSharedFlow<UiAction>()
+
         val searches = actionStateFlow
+            // 只接收 UiAction.Search 类型的值
             .filterIsInstance<UiAction.Search>()
+            // 过滤掉重复的搜索
             .distinctUntilChanged()
             .onStart { emit(UiAction.Search(query = initialQuery)) }
+
         val queriesScrolled = actionStateFlow
             .filterIsInstance<UiAction.Scroll>()
             .distinctUntilChanged()
@@ -76,6 +81,7 @@ class SearchRepositoriesViewModel(
                 replay = 1
             )
             .onStart { emit(UiAction.Scroll(currentQuery = lastQueryScrolled)) }
+
         pagingDataFlow = searches
             .flatMapLatest { searchRepo(queryString = it.query) }
             .cachedIn(viewModelScope)
@@ -97,9 +103,10 @@ class SearchRepositoriesViewModel(
                 initialValue = UiState()
             )
 
-        accept = { action ->
-            viewModelScope.launch { actionStateFlow.emit(action) }
-        }
+        // 将匿名函数（简写成了 lambda 形式）赋值给 accept
+        // 1. 匿名函数简化成 lambda
+        // 2. 单参数 lambda，参数可省略不写（省略的唯一参数，默认名字为 it）
+        accept = { viewModelScope.launch { actionStateFlow.emit(it) } }
     }
 
     override fun onCleared() {
